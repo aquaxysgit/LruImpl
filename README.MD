@@ -14,14 +14,14 @@
 
 ## 2. 자료구조 설계
 
-**선택한 구조**: `std::unordered_map` + Doubly Linked List (직접 구현)
+### 2.1 `std::unordered_map` + `Doubly Linked List`
 
 - `unordered_map<int, Node*>`: key를 통해 Node에 O(1) 접근
-- Doubly Linked List: 노드의 삽입, 삭제, 순서 재배치를 O(1)로 처리
+- `Doubly Linked List`: 노드의 삽입, 삭제, 순서 재배치를 O(1)로 처리
 
 이 조합은 LRU Cache를 O(1)으로 구현하는 가장 표준적이고 효과적인 방법입니다.
 
-### Dummy Head와 Dummy Tail 도입
+### 2.2 dummy headm tail 사
 
 Doubly Linked List를 직접 구현할 때 가장 까다로운 부분은 **경계 조건(Edge Case)** 입니다.
 
