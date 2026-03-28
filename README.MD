@@ -2,12 +2,12 @@
 
 ## 1. 과제 이해 및 설계 목표
 
-이번 과제는 메모리 자원이 제한된 환경에서 **고빈도 get과 put 요청**을 효율적으로 처리하는 LRU(Least Recently Used) 캐싱 모듈을 구현하는 것입니다.
+이번 과제는 메모리 자원이 제한된 환경에서 **빈도 높은 get과 put 요청들**을 효율적으로 처리하는 LRU(Least Recently Used) 캐싱 모듈을 구현하는 것입니다.
 
 주요 요구사항은 다음과 같습니다:
 - 고정된 capacity를 가진 저장소
 - `get(key)`: key가 존재하면 value를 반환하고, 해당 데이터를 **최근 사용(MRU)** 으로 갱신
-- `put(key, value)`: key가 존재하면 값을 overwrite하고 MRU로 갱신, 존재하지 않으면 삽입 (용량 초과 시 LRU eviction)
+- `put(key, value)`: key가 존재하면 값을 overwrite하고 **MRU로 갱신**, 존재하지 않으면 **삽입** (용량 초과 시 **LRU eviction**)
 - 모든 연산을 **평균 O(1)** 시간에 수행
 
 본 구현은 위 요구사항을 정확히 만족하면서, 자료구조 설계 능력과 알고리즘 최적화를 중점으로 개발했습니다.
@@ -17,7 +17,7 @@
 LRU Cache를 O(1)으로 구현하기 위해 다음 두 가지 자료구조를 조합했습니다:
 
 - **`std::unordered_map<int, Node*>`**
-- **Doubly Linked List**
+- **`Doubly Linked List`**
 
 **unordered_map의 역할**  
 - key를 입력받았을 때 해당 Node를 **즉시(O(1))** 찾을 수 있게 해줍니다.
