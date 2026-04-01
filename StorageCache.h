@@ -6,6 +6,11 @@
 #include <mutex>
 #include <vector>
 
+enum FuncType {
+    PUT = 0,
+    GET = 1
+};
+
 struct Node {
     int key;
     int value;
@@ -30,8 +35,8 @@ private:
     const int capacity;
     NodePool pool;
     std::unordered_map<int, Node*> cache;
-    Node* head;     // MRU dummy head
-    Node* tail;     // LRU dummy tail
+    Node* head;
+    Node* tail;
     mutable std::mutex mutex;
 
     void remove(Node* node);
@@ -40,13 +45,18 @@ private:
     Node* removeLRU();
 
 public:
-    explicit StorageCache(int cap);
+    StorageCache(int cap);
     ~StorageCache();
 
     int get(int key);
     void put(int key, int value);
     void freeCache();
-    void printState() const;
+    void printState(int type, int key, int returnValue = 0);
 };
+
+StorageCache* createCache(int capacity);
+void put(StorageCache* store, int key, int value);
+int get(StorageCache* store, int key);
+void freeCache(StorageCache* store);
 
 #endif
