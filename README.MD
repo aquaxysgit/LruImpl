@@ -25,7 +25,7 @@ LRU Cache를 O(1)으로 구현하기 위해 다음 두 가지 자료구조를 �
 - 해시맵이 없으면 O(n) 선형 탐색이 발생합니다.
 
 **Doubly Linked List의 역할**  
-- LRU의 핵심인 “가장 최근에 사용된 데이터를 맨 앞으로 이동”하는 작업을 O(1)로 가능하게 합니다.
+- LRU의 핵심인 `가장 최근에 사용된 데이터를 맨 앞으로 이동`하는 작업을 O(1)로 가능하게 합니다.
 - Doubly Linked List를 사용하여 **LRU를 구현하기 위해 맨 앞으로 옮기는(moveToFront) 함수와 LRU eviction(removeLRU) 함수를 추가**하였습니다.
 
 이 두 구조를 사용하여
@@ -43,8 +43,8 @@ int StorageCache::get(int key) {
     auto it = cache.find(key);           // unordered_map 조회 → O(1)
     if (it == cache.end()) return -1;
 
-    Node* node = it->second;             // map에서 Node 포인터 즉시 획득
-    moveToFront(node);                   // Doubly Linked List에서 위치 이동 → O(1)
+    Node* node = it->second;             // map에서 Node 포인터 획득
+    moveToFront(node);                   // MRU로 이동 → O(1)
     return node->value;
 }
 ```
@@ -83,3 +83,89 @@ void StorageCache::put(int key, int value) {
 - removeLRU() → tail->prev를 제거 → O(1)
 - cache.erase() → unordered_map 삭제 → O(1)
 - 전체 put 연산 : 평균 O(1) 입니다.
+
+## 4. 과제 요구사항에 따른 기능 개선
+
+과제에서 강조한 `메모리 자원이 제한된 환경`과 `매우 빈번한 데이터 조회와 쓰기 요청`이라는 점을 고려하여,  
+기본 구현 이후 두 가지 주요 개선을 단계적으로 적용했습니다.
+
+### 4.1 Fixed-size Memory Pool 도입
+
+메모리 제한 환경이라는 과제 배경을 반영하여, Node의 할당 방식을 개선했습니다.
+
+초기에는 모든 Node를 `new`와 `delete`로 직접 관리했습니다.  
+그러나 고빈도 요청이 발생하는 LRU 캐시에서는 Node의 생성과 삭제가 매우 빈번하게 일어나,
+
+할당 오버헤드와 메모리 단편화가 발생할 가능성이 있었습니다.
+
+이를 해결하기 위해 Fixed-size Memory Pool을 도입했습니다.
+
+- capacity만큼 Node를 미리 할당
+- `freeList`를 통해 사용이 끝난 Node를 재사용
+- `new`/`delete` 호출을 최소화하고 메모리 단편화를 방지
+- 메모리 사용량을 예측 가능하게 관리
+
+이 개선으로 메모리 자원이 제한된 환경에서도 더 안정적이고 효율적인 동작을 기대할 수 있게 되었습니다.
+
+### 4.2 Dummy Head와 Dummy Tail 도입
+
+Doubly Linked List 초기 버전에서는 head와 tail이 nullptr인지 확인하는 로직이 여러 함수에 들어갔습니다.
+
+- insertToFront() – 첫 노드 삽입 시 특별 처리
+```
+if (head == nullptr) {          // 첫 번째 노드인 경우
+    head = node;
+    tail = node;
+    node->prev = node->next = nullptr;
+    return;
+}
+```
+- remove() – head 또는 tail일 때 특별 처리
+```
+if (node == head) head = node->next;     // head일 때
+if (node == tail) tail = node->prev;     // tail일 때
+```
+- moveToFront() – head일 때 체크
+``` 
+if (!node || node == head) return;       // 이미 head라면 아무것도 안 함
+```
+- removeLRU() – tail이 nullptr일 때
+```
+if (tail == nullptr) return nullptr;
+```
+- printState() – head가 nullptr일 때
+```
+if (!head) {
+    std::cout << "[Empty]" << std::endl;
+    return;
+}
+```
+이런 분기 처리들이 여러 함수에 반복적으로 들어가다 보니 
+코드 유지보수의 어려움이 생길 수 있었습니다.
+그래서 Dummy Head와 Dummy Tail을 도입했습니다.
+
+Dummy를 추가한 후에는 head와 tail이 항상 존재하게 되어,
+리스트가 비어있을 때부터 가득 찰 때까지 추가 nullptr 체크 코드가 필요 없게 되었습니다.
+결과적으로 코드가 훨씬 간결해졌고, 경계 조건으로 인한 실수 가능성도 줄였습니다.
+
+### 4.3 대용량 시나리오 대응
+
+현재 구현은 고정된 capacity 환경에 최적화되어 있습니다.  
+만약 실제 시스템에서 capacity를 수십만 ~ 수백만 정도로 크게 설정해야 하는 상황이 발생한다면,  
+Memory Pool의 크기를 동적으로 조정하거나, 
+필요에 따라 `new`/`delete` 기반 fallback 방식을 추가하는 하이브리드 구조를 고려할 수 있습니다.
+
+### 5. 코드 품질 및 가독성
+
+- 메서드를 작은 단위로 분리하여 기능별로 세분화했습니다.
+- RAII 원칙을 준수하여 객체가 생성될 때 자원을 획득하고, 소멸될 때 해제되도록 설계 하였습니다.
+- 경계 조건 처리를 최소화하여 전체 코드의 가독성과 유지보수성을 높였습니다.
+- std::mutex를 활용해 get과 put 호출 시 동기화 처리를 하였습니다.
+
+## 6. 결론
+
+본 StorageCache는 기본 자료구조 설계에서 시작하여,  
+Fixed-size Memory Pool 도입 (메모리 효율성 개선)
+Dummy Head / Tail 도입 (코드 일관성 및 안정성 개선) 순으로 단계적으로 발전시켰습니다.
+
+이 과정에서 과제에서 요구하는 자료구조 설계 능력, 알고리즘 최적화, 코드 품질, 구현 이해도를 종합적으로 반영하고자 노력했습니다.
