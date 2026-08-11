@@ -1,5 +1,5 @@
 # StorageCache - LRU Cache Implementation
-![C++](https://img.shields.io/badge/C%2B%2B-17-00599C?logo=cplusplus&logoColor=white)
+![C++17](https://img.shields.io/badge/C%2B%2B17-00599C?logo=cplusplus&logoColor=white)
 
 ## 1. 구현 이해 및 설계 목표
 
